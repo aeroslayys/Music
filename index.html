@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Player</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-theme="auto">
+    <div class="musicbee-container">
+      <!-- Header -->
+      <header class="header">
+        <h1>Feather Player</h1>
+        <label for="fileInput" class="file-btn">Choose Folder</label>
+        <input type="file" id="fileInput" multiple webkitdirectory />
+      </header>
+
+      <!-- Playback Controls (full width) -->
+      <div class="control">
+        <input type="range" id="progress" value="0" step="1" />
+
+        <div class="controls">
+          <button id="shuffleBtn" class="control-btn">🔀</button>
+          <button id="prevBtn" class="control-btn">&#9664;</button>
+          <button id="playBtn" class="control-btn">&#9654;</button>
+          <button id="nextBtn" class="control-btn">&#9654;&#9654;</button>
+          <button id="loopBtn" class="control-btn">🔁</button>
+        </div>
+
+        <div class="volume-section">
+          <span>🔊</span>
+          <input
+            type="range"
+            id="volume"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1"
+          />
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <ul class="nav">
+          <li class="nav-item active" data-page="library">Library</li>
+          <li class="nav-item" data-page="playlists">Playlists</li>
+          <li class="nav-item" data-page="folders">Folders</li>
+          <select id="themeSelector">
+            <option value="auto">Auto (Album Art)</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </ul>
+
+        <!-- Sidebar Bottom: Album Art + Visualizer -->
+        <div class="sidebar-bottom">
+          <img id="sidebarAlbumArt" src="default-album.png" alt="Album Art" />
+          <p id="sidebarArtist">Unknown Artist</p>
+          <canvas id="visualizer"></canvas>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content" id="mainContent">
+        <div class="album-info">
+          <div class="track-details">
+            <h3 id="trackTitle">No Track Playing</h3>
+            <p id="trackArtist">Unknown Artist</p>
+          </div>
+        </div>
+
+        <div class="track-container">
+          <input type="text" id="searchInput" placeholder="Search tracks..." />
+          <ul id="trackList"></ul>
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/node-vibrant/3.1.6/Vibrant.min.js"></script>
+    <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  </body>
+</
