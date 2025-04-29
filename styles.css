@@ -1,4 +1,4 @@
-/* General styles */
+/* Reset and base styles */
 * {
   margin: 0;
   padding: 0;
@@ -12,7 +12,7 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* THEME SUPPORT */
+/* Themes */
 body[data-theme="dark"] {
   background: #1e1e1e;
   color: white;
@@ -23,16 +23,17 @@ body[data-theme="light"] {
   color: #000000;
 }
 
-/* Music Player Container */
+/* Container grid layout */
 .musicbee-container {
   display: grid;
   grid-template-areas:
     "header header"
     "sidebar main"
     "footer footer";
-  grid-template-rows: 50px 1fr 70px;
+  grid-template-rows: 50px 1fr auto;
   grid-template-columns: 180px 1fr;
   width: 100%;
+  height: 100vh;
 }
 
 /* Header */
@@ -53,7 +54,6 @@ body[data-theme="light"] .header {
   background: #f5f5f5;
 }
 
-/* File Button */
 .file-btn {
   background: #ff9800;
   padding: 5px 10px;
@@ -88,7 +88,6 @@ body[data-theme="light"] .sidebar {
   color: #000000;
 }
 
-/* Sidebar Navigation */
 .nav {
   list-style: none;
 }
@@ -104,25 +103,30 @@ body[data-theme="light"] .sidebar {
   color: white;
 }
 
-/* Sidebar Bottom - Album Art & Visualizer */
+/* Sidebar bottom (album art + visualizer) */
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 10px;
   margin-top: auto;
+  /* Add background color to ensure visibility */
 }
 
 .sidebar-bottom img {
-  width: 100px;
-  height: 100px;
+  width: 120px; /* Slightly increase the width */
+  height: 120px; /* Slightly increase the height */
   object-fit: cover;
   border-radius: 5px;
+  /* Ensure the image is centered properly */
+  display: block;
+  margin-bottom: 10px;
 }
 
 #sidebarArtist {
   margin: 5px 0;
   font-size: 12px;
+  text-align: center;
 }
 
 #visualizer {
@@ -140,14 +144,21 @@ body[data-theme="light"] #visualizer {
   background: #cccccc;
 }
 
-/* Main Content */
+/* Sidebar (album info section) */
+.sidebar .nav {
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+/* Main content */
 .main-content {
   grid-area: main;
   padding: 20px;
   display: flex;
+  flex-direction: column; /* ensure it stacks content properly */
   align-items: flex-start;
   gap: 15px;
-  transition: background-color 0.3s;
+  overflow-y: auto; /* enables scrolling if content is long */
 }
 
 body[data-theme="dark"] .main-content {
@@ -158,36 +169,16 @@ body[data-theme="light"] .main-content {
   background: #fdfdfd;
 }
 
-/* Album Info */
 .album-info {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 100px;
+  /* Removed track info section from here */
 }
 
-#albumArt {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 5px;
-}
-
-/* Tracklist */
 .track-container {
   flex: 1;
-}
-
-.track-details {
-  margin-bottom: 10px;
-}
-
-.track-details h3 {
-  font-size: 14px;
-}
-
-.track-details p {
-  font-size: 12px;
 }
 
 #searchInput {
@@ -222,87 +213,90 @@ body[data-theme="light"] #trackList li:hover {
   background: #eee;
 }
 
-/* Footer Controls */
-.footer {
+/* Footer / Playback Controls */
+.control {
   grid-area: footer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 10px;
+  width: 100%;
+  gap: 10px;
+  flex-shrink: 0; /* prevents it from shrinking */
+}
+
+#progress {
+  width: 80%;
+}
+
+.control-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 15px;
-  transition: background-color 0.3s;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-body[data-theme="dark"] .footer {
-  background: #292929;
-}
-
-body[data-theme="light"] .footer {
-  background: #f0f0f0;
-}
-
-/* Buttons */
 .controls {
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
 .control-btn {
   background: #ff9800;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
   border: none;
   color: white;
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.sliders {
+.volume-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  min-width: 120px;
 }
 
-input[type="range"] {
-  width: 80px;
+.volume-section input[type="range"] {
+  width: 100px;
+}
+/* Dark Theme */
+body[data-theme="dark"] #trackTitle,
+body[data-theme="dark"] #sidebarArtist {
+  color: #ffffff;
 }
 
-/* Playlists Page */
-#playlistsPage {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+body[data-theme="dark"] #visualizer {
+  background: #1e1e1e;
 }
 
-.playlist-controls {
-  display: flex;
-  gap: 8px;
+/* Light Theme */
+body[data-theme="light"] #trackTitle,
+body[data-theme="light"] #sidebarArtist {
+  color: #000000;
 }
 
-#playlistsTrackList,
-#foldersList {
-  list-style: none;
-  padding: 0;
+body[data-theme="light"] #visualizer {
+  background: #cccccc;
+}
+body[data-theme="dark"] .sidebar-bottom {
+  background-color: #2a2a2a;
 }
 
-#playlistsTrackList li,
-#foldersList li {
-  padding: 6px;
-  border-bottom: 1px solid #444;
-  cursor: pointer;
-  transition: background-color 0.2s;
+body[data-theme="light"] .sidebar-bottom {
+  background-color: #dddddd; /* or another light color */
+}
+body[data-theme="dark"] .control {
+  background-color: #292929; /* same as dark sidebar */
+  color: white;
 }
 
-#playlistsTrackList li:hover,
-#foldersList li:hover {
-  background: #555;
-}
-
-body[data-theme="light"] #playlistsTrackList li,
-body[data-theme="light"] #foldersList li {
-  border-color: #ddd;
-}
-
-body[data-theme="light"] #playlistsTrackList li:hover,
-body[data-theme="light"] #foldersList li:hover {
-  background: #eee;
+body[data-theme="light"] .control {
+  background-color: #eeeeee; /* same as light sidebar */
+  color: black;
 }

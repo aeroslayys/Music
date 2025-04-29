@@ -4,7 +4,6 @@ const playBtn = document.getElementById("playBtn");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const trackTitle = document.getElementById("trackTitle");
-const albumArt = document.getElementById("albumArt");
 const sidebarAlbumArt = document.getElementById("sidebarAlbumArt");
 const sidebarArtist = document.getElementById("sidebarArtist");
 const progressSlider = document.getElementById("progress");
@@ -67,7 +66,13 @@ fileInput.addEventListener("change", (event) => {
   const audioFiles = files.filter((file) =>
     supportedFormats.some((format) => file.name.endsWith(format))
   );
-  const albumCover = files.find((file) => file.name.match(/\.(jpg|jpeg|png)$/));
+  let albumCover = files.find((file) =>
+    /\/?cover\.(jpe?g|png)$/i.test(file.webkitRelativePath || file.name)
+  );
+
+  if (!albumCover) {
+    albumCover = files.find((file) => /\.(jpe?g|png)$/i.test(file.name));
+  }
 
   tracks = [];
 
@@ -85,18 +90,14 @@ fileInput.addEventListener("change", (event) => {
       // If first track, set sidebar artist and album art
       if (index === 0) {
         sidebarArtist.textContent = metadata.artist;
-
         if (metadata.imageUrl) {
           currentCoverUrl = metadata.imageUrl;
-          albumArt.src = metadata.imageUrl;
           sidebarAlbumArt.src = metadata.imageUrl;
-          if (currentTheme === "auto") updateTheme(metadata.imageUrl);
         } else if (albumCover) {
           currentCoverUrl = URL.createObjectURL(albumCover);
-          albumArt.src = currentCoverUrl;
           sidebarAlbumArt.src = currentCoverUrl;
-          if (currentTheme === "auto") updateTheme(currentCoverUrl);
         }
+
         playTrack(0);
       }
 
@@ -171,14 +172,18 @@ volumeSlider.addEventListener("input", () => {
 
 audio.addEventListener("ended", () => {
   if (isLoop) {
+    // Loop the current track
     playTrack(currentTrackIndex);
   } else if (isShuffle) {
+    // Play a random track from the playlist
     const randomIndex = Math.floor(Math.random() * tracks.length);
     playTrack(randomIndex);
   } else {
+    // Default: move to the next track
     if (currentTrackIndex < tracks.length - 1) {
       playTrack(currentTrackIndex + 1);
     } else {
+      // After the last track, loop back to the first track
       playTrack(0);
     }
   }
@@ -229,47 +234,10 @@ function setupVisualizer() {
   draw();
 }
 
-function updateTheme(imageUrl) {
-  const img = new Image();
-  img.src = imageUrl;
-  img.crossOrigin = "Anonymous";
-  img.onload = () => {
-    if (typeof Vibrant !== "undefined") {
-      const vibrant = new Vibrant(img);
-      const swatches = vibrant.swatches();
-      if (swatches.Vibrant) {
-        document.body.style.backgroundColor = swatches.Vibrant.getHex();
-        document.body.style.color = swatches.Vibrant.getTitleTextColor();
-      }
-    } else {
-      console.error("Vibrant.js is not loaded.");
-    }
-  };
-}
-
 function applyTheme(theme) {
   document.body.setAttribute("data-theme", theme);
-
-  if (theme === "auto" && currentCoverUrl) {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = currentCoverUrl;
-
-    img.onload = () => {
-      if (typeof Vibrant !== "undefined") {
-        const vibrant = new Vibrant(img);
-        const swatches = vibrant.swatches();
-        if (swatches.Vibrant) {
-          const bgColor = swatches.Vibrant.getHex();
-          const textColor = swatches.Vibrant.getTitleTextColor();
-          document.body.style.backgroundColor = bgColor;
-          document.body.style.color = textColor;
-        }
-      }
-    };
-  } else {
-    document.body.style.backgroundColor = "";
-    document.body.style.color = "";
+  if (theme === "dark" || theme === "light") {
+    localStorage.setItem("theme", theme);
   }
 }
 
@@ -280,14 +248,15 @@ themeSelector.addEventListener("change", () => {
 
 shuffleBtn.addEventListener("click", () => {
   isShuffle = !isShuffle;
-  shuffleBtn.style.backgroundColor = isShuffle ? "#ff9800" : "#292929";
+  shuffleBtn.style.backgroundColor = isShuffle ? "#87CEEB" : "#ff9800"; // Blue when enabled, original color when disabled
+  console.log("Shuffle:", isShuffle); // Debugging line
 });
 
 loopBtn.addEventListener("click", () => {
   isLoop = !isLoop;
-  loopBtn.style.backgroundColor = isLoop ? "#ff9800" : "#292929";
+  loopBtn.style.backgroundColor = isLoop ? "#87CEEB" : "#ff9800";
+  console.log("Loop:", isLoop); // Debugging line
 });
-
 searchInput.addEventListener("input", () => {
   const query = searchInput.value.toLowerCase();
   document.querySelectorAll("#trackList li").forEach((li) => {
@@ -295,4 +264,11 @@ searchInput.addEventListener("input", () => {
       ? ""
       : "none";
   });
+});
+// Set dark theme as default when the page loads
+window.addEventListener("DOMContentLoaded", () => {
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  currentTheme = savedTheme;
+  themeSelector.value = savedTheme;
+  applyTheme(savedTheme);
 });
