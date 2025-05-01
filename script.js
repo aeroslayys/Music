@@ -31,6 +31,13 @@ let isLoop = false;
 let currentTheme = "auto";
 let currentCoverUrl = "";
 let audioContext, analyser, dataArray, source;
+let isPlaylistPlaying = false;
+let playlistIndexes = [];
+let playlistIndex = 0;
+let isPlaylistMode = false; // Initialize it at the start
+let currentAlbum = "";
+let currentArtist = "";
+let allTracks = []; // Stores all tracks from all folders
 
 const supportedFormats = [".mp3", ".wav", ".ogg", ".m4a", ".flac"];
 
@@ -181,20 +188,34 @@ volumeSlider.addEventListener("input", () => {
 });
 
 audio.addEventListener("ended", () => {
-  if (isLoop) {
-    // Loop the current track
-    playTrack(currentTrackIndex);
-  } else if (isShuffle) {
-    // Play a random track from the playlist
-    const randomIndex = Math.floor(Math.random() * tracks.length);
-    playTrack(randomIndex);
-  } else {
-    // Default: move to the next track
-    if (currentTrackIndex < tracks.length - 1) {
-      playTrack(currentTrackIndex + 1);
+  if (isPlaylistMode) {
+    // Playlist mode logic
+    if (currentTrackIndex < playlistTracks.length - 1) {
+      // Play the next track in the playlist
+      playTrack(playlistTracks[currentTrackIndex + 1]);
+      currentTrackIndex++; // Update currentTrackIndex to the next track
     } else {
-      // After the last track, loop back to the first track
-      playTrack(0);
+      // If we're at the end of the playlist, loop back to the first track
+      playTrack(playlistTracks[0]);
+      currentTrackIndex = 0; // Reset to the start of the playlist
+    }
+  } else {
+    // Normal track playback logic
+    if (isLoop) {
+      // Loop the current track
+      playTrack(currentTrackIndex);
+    } else if (isShuffle) {
+      // Play a random track from the tracks list
+      const randomIndex = Math.floor(Math.random() * tracks.length);
+      playTrack(randomIndex);
+    } else {
+      // Default: move to the next track
+      if (currentTrackIndex < tracks.length - 1) {
+        playTrack(currentTrackIndex + 1);
+      } else {
+        // After the last track, loop back to the first track
+        playTrack(0);
+      }
     }
   }
 });
@@ -286,6 +307,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // Handle the case where no YouTube video is found or an error occurs
 async function fetchAlbumInfoFromMusicBrainz(artist, album) {
+  // Prevent fetching album info if it's the same as the previously fetched one
+  if (currentAlbum === album && currentArtist === artist) {
+    return;
+  }
+
   const query = `release:"${album}" AND artist:"${artist}"`;
   const url = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(
     query
@@ -293,7 +319,9 @@ async function fetchAlbumInfoFromMusicBrainz(artist, album) {
 
   try {
     const response = await fetch(url, {
-      headers: { "User-Agent": "FeatherPlayer/1.0 (shwethaparthapmail.com)" },
+      headers: {
+        "User-Agent": "FeatherPlayer/1.0 (shwethaparthiban17@gmail.com)",
+      },
     });
 
     const data = await response.json();
@@ -301,13 +329,17 @@ async function fetchAlbumInfoFromMusicBrainz(artist, album) {
     if (data.releases && data.releases.length > 0) {
       const release = data.releases[0];
 
+      // Update album info on the page
       document.getElementById("albumTitle").textContent =
         release.title || "Unknown Album";
       document.getElementById("albumArtist").textContent =
         release["artist-credit"]?.[0]?.name || "Unknown Artist";
       document.getElementById("albumDate").textContent =
         release.date || "Unknown Date";
-      // Removed genre line, as per request
+
+      // Update the current artist and album for future checks
+      currentAlbum = album;
+      currentArtist = artist;
     } else {
       console.error("No album found for the given artist and album.");
     }
@@ -377,5 +409,266 @@ async function displayArtistDiscography(artistName) {
     console.error("Error fetching artist discography:", error);
     document.getElementById("artistDiscography").innerHTML =
       "<p>Could not load artist discography.</p>";
+  }
+}
+//playlist below
+// Handle the creation of the playlist
+function handleCreatePlaylist() {
+  const nameInput = document.getElementById("playlist-name");
+  const selectedIndexes = Array.from(
+    document.querySelectorAll("#track-selector input:checked")
+  ).map((input) => parseInt(input.value));
+
+  if (nameInput.value && selectedIndexes.length > 0) {
+    renderPlaylist(nameInput.value, selectedIndexes);
+    savePlaylistsToLocalStorage();
+    nameInput.value = "";
+    document
+      .querySelectorAll("#track-selector input")
+      .forEach((i) => (i.checked = false));
+  } else {
+    alert("Please provide a playlist name and select at least one track.");
+  }
+}
+
+// Render a playlist div with controls and attach event listeners
+function renderPlaylist(name, trackIndexes) {
+  const container = document.getElementById("playlists-container");
+  const playlistDiv = document.createElement("div");
+  playlistDiv.className = "playlist";
+
+  const trackList = trackIndexes.map(
+    (i) =>
+      `${allTracks[i]?.name || "Unknown"} - ${
+        allTracks[i]?.artist || "Unknown"
+      }`
+  );
+
+  playlistDiv.innerHTML = `
+    <div class="playlist-header">
+      <strong class="playlist-title">${name}</strong>
+      <div class="playlist-controls">
+        <button class="play-playlist-btn">▶️</button>
+        <button class="edit-playlist-btn">✏️</button>
+        <button class="delete-playlist-btn">🗑️</button>
+      </div>
+    </div>
+    <ul class="playlist-tracks">
+      ${trackList.map((t) => `<li>${t}</li>`).join("")}
+    </ul>
+  `;
+
+  playlistDiv.dataset.indexes = JSON.stringify(trackIndexes);
+  container.appendChild(playlistDiv);
+
+  // Event listeners
+  playlistDiv
+    .querySelector(".play-playlist-btn")
+    .addEventListener("click", () => {
+      playPlaylist(trackIndexes);
+    });
+
+  playlistDiv
+    .querySelector(".edit-playlist-btn")
+    .addEventListener("click", () => {
+      const newName = prompt("Edit playlist name:", name);
+      if (newName) {
+        playlistDiv.querySelector(".playlist-title").textContent = newName;
+        savePlaylistsToLocalStorage();
+      }
+    });
+
+  playlistDiv
+    .querySelector(".delete-playlist-btn")
+    .addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete this playlist?")) {
+        playlistDiv.remove();
+        savePlaylistsToLocalStorage();
+      }
+    });
+}
+
+// Play all tracks in the playlist one by one
+function playPlaylist(trackIndexes) {
+  let i = 0;
+
+  function playNext() {
+    if (i >= trackIndexes.length) return;
+    const track = allTracks[trackIndexes[i]];
+    if (track) {
+      audioElement.src = track.url;
+      audioElement.play();
+      sidebarArtist.textContent = track.artist || "Unknown Artist";
+      trackTitle.textContent = track.name || "No Track Playing";
+      sidebarAlbumArt.src = track.imageUrl || "assets/images/default-album.png";
+    }
+    i++;
+    audioElement.onended = playNext;
+  }
+
+  playNext();
+}
+
+// Save playlists to localStorage
+function savePlaylistsToLocalStorage() {
+  const playlists = Array.from(document.querySelectorAll(".playlist")).map(
+    (playlistDiv) => {
+      const name = playlistDiv.querySelector(".playlist-title").textContent;
+      const indexes = JSON.parse(playlistDiv.dataset.indexes || "[]");
+      return { name, indexes };
+    }
+  );
+  localStorage.setItem("featherPlaylists", JSON.stringify(playlists));
+}
+
+// Load from localStorage on page load
+function loadPlaylistsFromLocalStorage() {
+  const saved = localStorage.getItem("featherPlaylists");
+  if (!saved) return;
+  const playlists = JSON.parse(saved);
+  playlists.forEach((pl) => renderPlaylist(pl.name, pl.indexes));
+}
+
+// Attach event listener to the create button
+document
+  .getElementById("create-playlist-btn")
+  .addEventListener("click", function () {
+    handleCreatePlaylist();
+  });
+function populateTrackSelector() {
+  const selector = document.getElementById("track-selector");
+  selector.innerHTML = "";
+  allTracks.forEach((track, index) => {
+    const label = document.createElement("label");
+    label.className = "track-option";
+    label.innerHTML = `
+        <input type="checkbox" value="${index}"> ${track.name} - ${track.artist}
+      `;
+    selector.appendChild(label);
+  });
+}
+
+// On page load
+populateTrackSelector();
+loadPlaylistsFromLocalStorage();
+
+// folder navigation
+let folderMap = {};
+let parentFolderName = "";
+
+fileInput.addEventListener("change", async (event) => {
+  const files = Array.from(event.target.files);
+  const audioFiles = files.filter((file) =>
+    supportedFormats.some((format) => file.name.endsWith(format))
+  );
+
+  if (files.length > 0) {
+    const fullPath = files[0].webkitRelativePath || "";
+    parentFolderName = fullPath.split("/")[0];
+    document.getElementById("folderLabel").textContent = parentFolderName;
+  }
+
+  const metadataPromises = audioFiles.map(
+    (file) =>
+      new Promise((resolve) => {
+        readMetadata(file, (metadata) => {
+          resolve({ file, metadata });
+        });
+      })
+  );
+
+  const results = await Promise.all(metadataPromises);
+
+  folderMap = {}; // Reset
+
+  results.forEach((result, index) => {
+    const folderPath =
+      (result.file.webkitRelativePath || "")
+        .split("/")
+        .slice(1, -1) // Exclude parent
+        .join("/") || "Root";
+
+    if (!folderMap[folderPath])
+      folderMap[folderPath] = { tracks: [], cover: null };
+
+    folderMap[folderPath].tracks.push({
+      name: result.metadata.title?.replace(/\.[^/.]+$/, "") || result.file.name,
+      url: URL.createObjectURL(result.file),
+      album: result.metadata.album || "Unknown Album", // <-- ADD THIS
+      artist: result.metadata.artist || "Unknown Artist",
+      index,
+      imageUrl: result.metadata.imageUrl,
+    });
+    // After building folderMap from uploaded files:
+    allTracks = [];
+    for (const folderName in folderMap) {
+      const folderTracks = folderMap[folderName].tracks || [];
+      allTracks.push(...folderTracks);
+    }
+    populateTrackSelector(); // <- ✅ call it here
+
+    // Set the folder's cover if it's the first track in the folder
+    if (!folderMap[folderPath].cover && result.metadata.imageUrl) {
+      folderMap[folderPath].cover = result.metadata.imageUrl;
+    }
+  });
+
+  const folderNames = Object.keys(folderMap);
+  displayFolderList(folderNames);
+
+  // Automatically load first folder
+  if (folderNames.length) loadTracksFromFolder(folderNames[0]);
+});
+
+function displayFolderList(folderNames) {
+  const folderList = document.getElementById("folderList");
+  folderList.innerHTML = "";
+
+  folderNames.forEach((folderName) => {
+    const folder = folderMap[folderName];
+    const cover = folder.cover;
+
+    const folderItem = document.createElement("div");
+    folderItem.className = "folder-item";
+    folderItem.textContent = ""; // We'll show the name as overlay
+
+    if (cover) {
+      folderItem.style.backgroundImage = `url(${cover})`;
+    }
+
+    const label = document.createElement("span");
+    label.className = "folder-name";
+    label.textContent = folderName.split("/").pop(); // Exclude parent folder name
+    folderItem.appendChild(label);
+
+    folderItem.onclick = () => loadTracksFromFolder(folderName);
+    folderList.appendChild(folderItem);
+  });
+}
+
+function loadTracksFromFolder(folderName) {
+  tracks = folderMap[folderName]?.tracks || [];
+  currentTrackIndex = 0;
+  displayTracks();
+
+  if (tracks.length) {
+    const firstTrack = tracks[0];
+    playTrack(0);
+
+    // Update album art on sidebar
+    if (firstTrack.imageUrl) {
+      sidebarAlbumArt.src = firstTrack.imageUrl;
+    } else {
+      sidebarAlbumArt.src = "assets/images/default-album.png";
+    }
+
+    // Update album info from MusicBrainz
+    fetchAlbumInfoFromMusicBrainz(firstTrack.artist, firstTrack.album);
+
+    // Update artist's discography
+    displayArtistDiscography(firstTrack.artist);
+    // Update artist and track title
+    sidebarArtist.textContent = firstTrack.artist || "Unknown Artist";
+    trackTitle.textContent = firstTrack.name || "No Track Playing";
   }
 }

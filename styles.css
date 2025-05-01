@@ -180,7 +180,7 @@ body[data-theme="light"] #visualizer {
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin: 15px 0;
-  max-width: 500px; /* Optional: slightly wider max if needed */
+  max-width: 350px; /* Optional: slightly wider max if needed */
   width: 100%;
   overflow: hidden;
 }
@@ -346,4 +346,201 @@ body[data-theme="light"] .sidebar-bottom {
 body[data-theme="light"] .control {
   background-color: #eeeeee;
   color: black;
+}
+/* Responsive Design for Mobile */
+@media (max-width: 768px) {
+  .musicbee-container {
+    grid-template-areas:
+      "header"
+      "main"
+      "sidebar"
+      "footer";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    height: auto;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    justify-content: space-around;
+    padding: 10px;
+  }
+
+  .sidebar-bottom {
+    flex-direction: row;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .sidebar-bottom img {
+    width: 80px;
+    height: 80px;
+  }
+
+  #visualizer {
+    height: 50px;
+  }
+
+  .main-content {
+    padding: 10px;
+    gap: 15px;
+  }
+
+  .track-and-album {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .album-info {
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .control-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .volume-section input[type="range"] {
+    width: 100%;
+  }
+
+  .control {
+    padding: 15px 10px;
+  }
+}
+#playlist-section {
+  background: var(--background-color);
+  color: var(--text-color);
+  padding: 40px;
+  border-top: 2px solid var(--border-color);
+}
+
+#playlist-name {
+  padding: 10px;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--input-text-color);
+}
+
+#track-selector {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.track-option {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+#playlists-container {
+  margin-top: 20px;
+}
+
+.playlist {
+  background: var(--playlist-bg);
+  padding: 10px;
+  border: 1px solid var(--playlist-border);
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.playlist ul {
+  margin: 5px 0 0 20px;
+  padding: 0;
+}
+
+/* Light Theme */
+body[data-theme="light"] {
+  --background-color: #f9f9f9;
+  --text-color: #333;
+  --border-color: #ccc;
+  --input-bg: #fff;
+  --input-border: #ccc;
+  --input-text-color: #333;
+  --playlist-bg: #fff;
+  --playlist-border: #ddd;
+}
+
+/* Dark Theme */
+body[data-theme="dark"] {
+  --background-color: #444;
+  --text-color: #eaeaea;
+  --border-color: #444;
+  --input-bg: #333;
+  --input-border: #444;
+  --input-text-color: #eaeaea;
+  --playlist-bg: #2c2c2c;
+  --playlist-border: #444;
+}
+/* Folder list shown as a responsive square grid */
+.folder-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 1rem;
+  padding: 10px;
+}
+
+/* Each folder as a square tile */
+.folder-item {
+  aspect-ratio: 1 / 1;
+  background-color: var(--folder-bg, #f0f0f0);
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.folder-item .folder-name {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 6px;
+  font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  text-align: center;
+  font-weight: bold;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.folder-item:hover {
+  background: var(--folder-hover-bg, #d6d6d6);
+}
+
+/* Support for dark mode via data-theme */
+:root {
+  --folder-bg: #f0f0f0;
+  --folder-hover-bg: #d6d6d6;
+}
+
+[data-theme="dark"] {
+  --folder-bg: #2a2a2a;
+  --folder-hover-bg: #3a3a3a;
+}
+#folderExplorer h2 span#folderLabel {
+  font-weight: bold;
+  color: var(--folder-label-color, #444);
+}
+
+[data-theme="dark"] #folderExplorer h2 span#folderLabel {
+  --folder-label-color: #eee;
 }

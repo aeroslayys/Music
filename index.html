@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body data-theme="auto">
+
     <div class="musicbee-container">
       <!-- Header -->
       <header class="header">
@@ -46,10 +48,10 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <ul class="nav">
-          <li class="nav-item active" data-page="library">Library</li>
-          <li class="nav-item" data-page="playlists">Playlists</li>
-          <li class="nav-item" data-page="folders">Folders</li>
-          <select id="themeSelector">
+          <li class="nav-item" data-target="track-container">Library</li>
+    <li class="nav-item" data-target="playlist-section">Playlists</li>
+    <li class="nav-item" data-target="folderExplorer">Folders</li>
+          <select id="themeSelector"> 
             <option value="dark">Dark</option>
             <option value="light">Light</option>
           </select>
@@ -108,12 +110,61 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        <!--playlist section-->
+        <section id="playlist-section">
+          <h2>Create Playlist</h2>
+          <div id="track-selector">
+            <!-- Tracks checkboxes will be dynamically generated here -->
+          </div>
+        
+          <!-- Playlist name input field -->
+          <input
+            type="text"
+            id="playlist-name"
+            placeholder="Enter playlist name"
+            aria-label="Enter playlist name"
+            required
+          />
+        
+          <!-- Button to create playlist -->
+          <button onclick="handleCreatePlaylist(tracks)" id="create-playlist-btn">
+            Create Playlist
+          </button>
+        
+          <!-- Divider for visual separation -->
+          <hr />
+        
+          <h3>Your Playlists</h3>
+          <div id="playlists-container">
+            <!-- Created playlists will be dynamically listed here -->
+          </div>
+          <!-- Folder navigation view -->
+          <div id="folderExplorer">
+            <h2>Folders in <span id="folderLabel">-</span></h2>
+            <div id="folderList" class="folder-list"></div>
+          </div>
+          
+
+        </section>
+        
+        
+        
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/node-vibrant/3.1.6/Vibrant.min.js"></script>
     <script src="script.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <script>
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const targetId = item.getAttribute("data-target");
+          const target = document.getElementById(targetId);
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+    </script>
+    
   </body>
 </html>
 <!--AIzaSyCEDpvpoSAv5o5YvUo0p7XR4Ed6Cm_0wRA-->
