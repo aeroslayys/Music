@@ -68,20 +68,47 @@
           <canvas id="visualizer"></canvas>
         </div>
       </aside>
-
       <!-- Main Content -->
-      <main class="main-content" id="mainContent">
-        <div class="album-info">
-          <div class="track-details">
-            <!--   <p id="sidebarArtist">Unknown Artist</p>-->
+      <!-- Main Content -->
+      <div class="main-content">
+        <div class="track-and-album">
+          <div class="track-container">
+            <!-- Search input + trackList -->
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search tracks..."
+            />
+            <ul id="trackList"></ul>
+          </div>
+          <div class="album-info">
+            <!-- Album info in a grid layout -->
+            <div class="album-info-grid">
+              <div class="album-info-item">
+                <strong>Album:</strong>
+                <span id="albumTitle">Loading Album...</span>
+              </div>
+              <div class="album-info-item">
+                <strong>Artist:</strong>
+                <span id="albumArtist">-</span>
+              </div>
+              <div class="album-info-item">
+                <strong>Release Date:</strong>
+                <span id="albumDate">-</span>
+              </div>
+              <div class="album-info-item">
+                <strong> Artist discography: </strong>
+                <span id="albumDate">-</span>
+              </div>
+            </div>
+
+            <!-- Artist discography section -->
+            <div id="albumDiscography" class="album-info-item">
+              <div id="artistDiscography">Loading...</div>
+            </div>
           </div>
         </div>
-
-        <div class="track-container">
-          <input type="text" id="searchInput" placeholder="Search tracks..." />
-          <ul id="trackList"></ul>
-        </div>
-      </main>
+      </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/node-vibrant/3.1.6/Vibrant.min.js"></script>
@@ -89,3 +116,4 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
   </body>
 </html>
+<!--AIzaSyCEDpvpoSAv5o5YvUo0p7XR4Ed6Cm_0wRA-->

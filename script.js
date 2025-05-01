@@ -61,51 +61,61 @@ function readMetadata(file, callback) {
   });
 }
 
-fileInput.addEventListener("change", (event) => {
+fileInput.addEventListener("change", async (event) => {
   const files = Array.from(event.target.files);
   const audioFiles = files.filter((file) =>
     supportedFormats.some((format) => file.name.endsWith(format))
   );
-  let albumCover = files.find((file) =>
-    /\/?cover\.(jpe?g|png)$/i.test(file.webkitRelativePath || file.name)
-  );
 
-  if (!albumCover) {
-    albumCover = files.find((file) => /\.(jpe?g|png)$/i.test(file.name));
-  }
+  let albumCover =
+    files.find((file) =>
+      /\/?cover\.(jpe?g|png)$/i.test(file.webkitRelativePath || file.name)
+    ) || files.find((file) => /\.(jpe?g|png)$/i.test(file.name));
 
-  tracks = [];
-
-  audioFiles.forEach((file, index) => {
-    readMetadata(file, (metadata) => {
-      const track = {
-        name: metadata.title.replace(/\.[^/.]+$/, ""),
-        url: URL.createObjectURL(file),
-        artist: metadata.artist,
-        index,
-      };
-
-      tracks.push(track);
-
-      // If first track, set sidebar artist and album art
-      if (index === 0) {
-        sidebarArtist.textContent = metadata.artist;
-        if (metadata.imageUrl) {
-          currentCoverUrl = metadata.imageUrl;
-          sidebarAlbumArt.src = metadata.imageUrl;
-        } else if (albumCover) {
-          currentCoverUrl = URL.createObjectURL(albumCover);
-          sidebarAlbumArt.src = currentCoverUrl;
-        }
-
-        playTrack(0);
-      }
-
-      if (tracks.length === audioFiles.length) {
-        displayTracks();
-      }
+  const metadataPromises = audioFiles.map((file) => {
+    return new Promise((resolve) => {
+      readMetadata(file, (metadata) => {
+        resolve({
+          file,
+          metadata,
+        });
+      });
     });
   });
+
+  const results = await Promise.all(metadataPromises);
+
+  // Sort by filename or title (customize if needed)
+  results.sort((a, b) => a.file.name.localeCompare(b.file.name));
+
+  tracks = results.map((result, index) => {
+    const { file, metadata } = result;
+    return {
+      name: metadata.title.replace(/\.[^/.]+$/, ""),
+      url: URL.createObjectURL(file),
+      artist: metadata.artist,
+      index: index,
+    };
+  });
+
+  if (tracks.length > 0) {
+    const first = results[0];
+    sidebarArtist.textContent = first.metadata.artist;
+
+    if (first.metadata.imageUrl) {
+      currentCoverUrl = first.metadata.imageUrl;
+      sidebarAlbumArt.src = currentCoverUrl;
+    } else if (albumCover) {
+      currentCoverUrl = URL.createObjectURL(albumCover);
+      sidebarAlbumArt.src = currentCoverUrl;
+    }
+
+    fetchAlbumInfoFromMusicBrainz(first.metadata.artist, first.metadata.album);
+    displayArtistDiscography(first.metadata.artist);
+  }
+
+  displayTracks();
+  playTrack(0);
 });
 
 function displayTracks() {
@@ -272,3 +282,100 @@ window.addEventListener("DOMContentLoaded", () => {
   themeSelector.value = savedTheme;
   applyTheme(savedTheme);
 });
+// Updated fetchYouTubeVideo function with better error handling
+
+// Handle the case where no YouTube video is found or an error occurs
+async function fetchAlbumInfoFromMusicBrainz(artist, album) {
+  const query = `release:"${album}" AND artist:"${artist}"`;
+  const url = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(
+    query
+  )}&fmt=json&limit=1`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "FeatherPlayer/1.0 (shwethaparthapmail.com)" },
+    });
+
+    const data = await response.json();
+
+    if (data.releases && data.releases.length > 0) {
+      const release = data.releases[0];
+
+      document.getElementById("albumTitle").textContent =
+        release.title || "Unknown Album";
+      document.getElementById("albumArtist").textContent =
+        release["artist-credit"]?.[0]?.name || "Unknown Artist";
+      document.getElementById("albumDate").textContent =
+        release.date || "Unknown Date";
+      // Removed genre line, as per request
+    } else {
+      console.error("No album found for the given artist and album.");
+    }
+  } catch (error) {
+    console.error("Error fetching album data from MusicBrainz:", error);
+  }
+}
+
+// Function to fetch and display artist's discography if no video is found
+// New function to fetch and display artist discography
+async function displayArtistDiscography(artistName) {
+  const searchUrl = `https://musicbrainz.org/ws/2/artist/?query=artist:"${artistName}"&fmt=json&limit=1`;
+
+  try {
+    const searchResponse = await fetch(searchUrl, {
+      headers: {
+        "User-Agent": "FeatherPlayer/1.0 (shwethaparthiban17@gmail.com)",
+      },
+    });
+
+    const searchData = await searchResponse.json();
+    if (searchData.artists && searchData.artists.length > 0) {
+      const artistId = searchData.artists[0].id;
+
+      const releaseGroupUrl = `https://musicbrainz.org/ws/2/release-group?artist=${artistId}&type=album|ep&fmt=json&limit=20`;
+
+      const groupResponse = await fetch(releaseGroupUrl, {
+        headers: {
+          "User-Agent": "FeatherPlayer/1.0 (shwethaparthiban17@gmail.com)",
+        },
+      });
+
+      const groupData = await groupResponse.json();
+
+      if (
+        groupData["release-groups"] &&
+        groupData["release-groups"].length > 0
+      ) {
+        let discographyHtml = '<div style="font-family: sans-serif;">';
+
+        groupData["release-groups"].forEach((group) => {
+          const title = group.title;
+          const date = group["first-release-date"] || "Unknown";
+          const year = date.substring(0, 4); // Extract only the year
+          const type = group["primary-type"] || "Unknown";
+
+          discographyHtml += `
+            <div style="margin-bottom: 1em;">
+              <div style="font-weight: bold; font-size: 1.1em;">${title}</div>
+              <div style="color: #666; font-size: 0.9em;">${year} • ${type}</div>
+            </div>
+          `;
+        });
+
+        discographyHtml += "</div>";
+        document.getElementById("artistDiscography").innerHTML =
+          discographyHtml;
+      } else {
+        document.getElementById("artistDiscography").innerHTML =
+          "<p>No albums or EPs found.</p>";
+      }
+    } else {
+      document.getElementById("artistDiscography").innerHTML =
+        "<p>Artist not found.</p>";
+    }
+  } catch (error) {
+    console.error("Error fetching artist discography:", error);
+    document.getElementById("artistDiscography").innerHTML =
+      "<p>Could not load artist discography.</p>";
+  }
+}
