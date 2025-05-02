@@ -131,11 +131,52 @@ function displayTracks() {
     trackList.innerHTML = "<li>No tracks found</li>";
     return;
   }
+
   tracks.forEach((track, index) => {
     const li = document.createElement("li");
     li.textContent = `${track.name}`;
     li.dataset.index = index;
-    li.addEventListener("click", () => playTrack(index));
+
+    // Add click event to switch to normal mode
+    li.addEventListener("click", () => {
+      // Exit playlist mode if any
+      currentPlaylist = null;
+      currentPlaylistIndex = null;
+
+      // Update current track index to the clicked track
+      currentTrackIndex = index;
+
+      // Start normal playback
+      audio.src = track.url;
+      audio.play();
+
+      sidebarArtist.textContent = track.artist || "Unknown Artist";
+      trackTitle.textContent = track.name || "No Track Playing";
+      sidebarAlbumArt.src = track.imageUrl || "assets/images/default-album.png";
+
+      // Fetch album info and artist discography (optional)
+      fetchAlbumInfoFromMusicBrainz(track.artist, track.album);
+      displayArtistDiscography(track.artist);
+
+      // Handle the "onended" event for normal playback
+      audio.onended = () => {
+        if (currentTrackIndex < tracks.length - 1) {
+          currentTrackIndex++;
+          const nextTrack = tracks[currentTrackIndex];
+          audio.src = nextTrack.url;
+          audio.play();
+
+          sidebarArtist.textContent = nextTrack.artist || "Unknown Artist";
+          trackTitle.textContent = nextTrack.name || "No Track Playing";
+          sidebarAlbumArt.src =
+            nextTrack.imageUrl || "assets/images/default-album.png";
+
+          fetchAlbumInfoFromMusicBrainz(nextTrack.artist, nextTrack.album);
+          displayArtistDiscography(nextTrack.artist);
+        }
+      };
+    });
+
     trackList.appendChild(li);
   });
 }
@@ -163,14 +204,48 @@ playBtn.addEventListener("click", () => {
 });
 
 prevBtn.addEventListener("click", () => {
-  if (currentTrackIndex > 0) {
-    playTrack(currentTrackIndex - 1);
+  if (currentPlaylist) {
+    if (currentPlaylistIndex > 0) {
+      currentPlaylistIndex--;
+      const track = allTracks[currentPlaylist[currentPlaylistIndex]];
+      if (track) {
+        audio.src = track.url;
+        audio.play();
+        sidebarArtist.textContent = track.artist || "Unknown Artist";
+        trackTitle.textContent = track.name || "No Track Playing";
+        sidebarAlbumArt.src =
+          track.imageUrl || "assets/images/default-album.png";
+        fetchAlbumInfoFromMusicBrainz(track.artist, track.album);
+        displayArtistDiscography(track.artist);
+      }
+    }
+  } else {
+    if (currentTrackIndex > 0) {
+      playTrack(currentTrackIndex - 1);
+    }
   }
 });
 
 nextBtn.addEventListener("click", () => {
-  if (currentTrackIndex < tracks.length - 1) {
-    playTrack(currentTrackIndex + 1);
+  if (currentPlaylist) {
+    if (currentPlaylistIndex < currentPlaylist.length - 1) {
+      currentPlaylistIndex++;
+      const track = allTracks[currentPlaylist[currentPlaylistIndex]];
+      if (track) {
+        audio.src = track.url;
+        audio.play();
+        sidebarArtist.textContent = track.artist || "Unknown Artist";
+        trackTitle.textContent = track.name || "No Track Playing";
+        sidebarAlbumArt.src =
+          track.imageUrl || "assets/images/default-album.png";
+        fetchAlbumInfoFromMusicBrainz(track.artist, track.album);
+        displayArtistDiscography(track.artist);
+      }
+    }
+  } else {
+    if (currentTrackIndex < tracks.length - 1) {
+      playTrack(currentTrackIndex + 1);
+    }
   }
 });
 
@@ -490,23 +565,70 @@ function renderPlaylist(name, trackIndexes) {
 
 // Play all tracks in the playlist one by one
 function playPlaylist(trackIndexes) {
-  let i = 0;
+  currentPlaylist = trackIndexes;
+  currentPlaylistIndex = 0;
 
-  function playNext() {
-    if (i >= trackIndexes.length) return;
-    const track = allTracks[trackIndexes[i]];
-    if (track) {
-      audioElement.src = track.url;
-      audioElement.play();
-      sidebarArtist.textContent = track.artist || "Unknown Artist";
-      trackTitle.textContent = track.name || "No Track Playing";
-      sidebarAlbumArt.src = track.imageUrl || "assets/images/default-album.png";
+  function playNextTrack() {
+    // ✅ Exit playlist mode and resume normal playback if playlist is done
+    if (currentPlaylistIndex >= currentPlaylist.length) {
+      currentPlaylist = null;
+      currentPlaylistIndex = null;
+
+      // ✅ Resume from currentTrackIndex in normal playback (if still valid)
+      if (currentTrackIndex < tracks.length - 1) {
+        currentTrackIndex++;
+        const nextTrack = tracks[currentTrackIndex];
+        if (nextTrack) {
+          audio.src = nextTrack.url;
+          audio.play();
+
+          sidebarArtist.textContent = nextTrack.artist || "Unknown Artist";
+          trackTitle.textContent = nextTrack.name || "No Track Playing";
+          sidebarAlbumArt.src =
+            nextTrack.imageUrl || "assets/images/default-album.png";
+
+          fetchAlbumInfoFromMusicBrainz(nextTrack.artist, nextTrack.album);
+          displayArtistDiscography(nextTrack.artist);
+
+          audio.onended = () => {
+            if (currentTrackIndex < tracks.length - 1) {
+              currentTrackIndex++;
+              playTrack(currentTrackIndex);
+            }
+          };
+        }
+      }
+
+      return;
     }
-    i++;
-    audioElement.onended = playNext;
+
+    const track = allTracks[currentPlaylist[currentPlaylistIndex]];
+    if (!track) {
+      currentPlaylistIndex++;
+      playNextTrack(); // Skip invalid
+      return;
+    }
+
+    // ✅ Sync currentTrackIndex to keep next/prev working
+    currentTrackIndex = track.index || 0;
+
+    audio.src = track.url;
+    audio.play();
+
+    sidebarArtist.textContent = track.artist || "Unknown Artist";
+    trackTitle.textContent = track.name || "No Track Playing";
+    sidebarAlbumArt.src = track.imageUrl || "assets/images/default-album.png";
+
+    fetchAlbumInfoFromMusicBrainz(track.artist, track.album);
+    displayArtistDiscography(track.artist);
+
+    audio.onended = () => {
+      currentPlaylistIndex++;
+      playNextTrack();
+    };
   }
 
-  playNext();
+  playNextTrack();
 }
 
 // Save playlists to localStorage
@@ -620,30 +742,73 @@ fileInput.addEventListener("change", async (event) => {
   if (folderNames.length) loadTracksFromFolder(folderNames[0]);
 });
 
-function displayFolderList(folderNames) {
+function displayFolderList(
+  folderNames,
+  sortBy = "name",
+  sortOrder = "asc",
+  viewMode = "folder"
+) {
   const folderList = document.getElementById("folderList");
   folderList.innerHTML = "";
 
-  folderNames.forEach((folderName) => {
-    const folder = folderMap[folderName];
-    const cover = folder.cover;
+  // Sort the folder names based on the provided criteria (sortBy) and order (sortOrder)
+  folderNames.sort((a, b) => {
+    const folderA = folderMap[a];
+    const folderB = folderMap[b];
 
-    const folderItem = document.createElement("div");
-    folderItem.className = "folder-item";
-    folderItem.textContent = ""; // We'll show the name as overlay
-
-    if (cover) {
-      folderItem.style.backgroundImage = `url(${cover})`;
+    let comparison = 0;
+    if (sortBy === "name") {
+      comparison = a.localeCompare(b); // Compare folder names alphabetically
+    } else if (sortBy === "artist") {
+      const artistA = folderA.tracks[0]?.artist || ""; // Grab artist of the first track in the folder
+      const artistB = folderB.tracks[0]?.artist || ""; // Grab artist of the first track in the folder
+      comparison = artistA.localeCompare(artistB); // Compare by artist
+    } else if (sortBy === "album") {
+      const albumA = folderA.tracks[0]?.album || ""; // Grab album of the first track in the folder
+      const albumB = folderB.tracks[0]?.album || ""; // Grab album of the first track in the folder
+      comparison = albumA.localeCompare(albumB); // Compare by album
     }
 
-    const label = document.createElement("span");
-    label.className = "folder-name";
-    label.textContent = folderName.split("/").pop(); // Exclude parent folder name
-    folderItem.appendChild(label);
-
-    folderItem.onclick = () => loadTracksFromFolder(folderName);
-    folderList.appendChild(folderItem);
+    // If sortOrder is descending, reverse the comparison result
+    return sortOrder === "asc" ? comparison : -comparison;
   });
+
+  // If in folder view mode, display the folders
+  if (viewMode === "folder") {
+    folderNames.forEach((folderName) => {
+      const folder = folderMap[folderName];
+      const cover = folder.cover;
+
+      const folderItem = document.createElement("div");
+      folderItem.className = "folder-item";
+      folderItem.textContent = ""; // We'll show the name as overlay
+
+      if (cover) {
+        folderItem.style.backgroundImage = `url(${cover})`;
+      }
+
+      const label = document.createElement("span");
+      label.className = "folder-name";
+      label.textContent = folderName.split("/").pop(); // Exclude parent folder name
+      folderItem.appendChild(label);
+
+      folderItem.onclick = () => loadTracksFromFolder(folderName);
+      folderList.appendChild(folderItem);
+    });
+  } else if (viewMode === "tracklist") {
+    // If in tracklist view mode, display tracks of the selected folder
+    const folderName = folderNames[0]; // Assuming you are selecting the first folder or a specific folder
+    const tracks = folderMap[folderName]?.tracks || [];
+
+    tracks.forEach((track) => {
+      const trackItem = document.createElement("div");
+      trackItem.className = "track-item";
+      trackItem.textContent = track.name;
+
+      trackItem.onclick = () => playTrack(track.index); // Play track on click
+      folderList.appendChild(trackItem);
+    });
+  }
 }
 
 function loadTracksFromFolder(folderName) {

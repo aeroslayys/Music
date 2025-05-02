@@ -138,6 +138,30 @@
           <div id="playlists-container">
             <!-- Created playlists will be dynamically listed here -->
           </div>
+          <select id="sortBy">
+            <option value="name">Sort by Name</option>
+            <option value="artist">Sort by Artist</option>
+          </select>
+          
+          <select id="sortOrder">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+          
+          <script>
+            document.getElementById('sortBy').addEventListener('change', function() {
+              const sortBy = this.value;
+              const sortOrder = document.getElementById('sortOrder').value;
+              displayFolderList(Object.keys(folderMap), sortBy, sortOrder);
+            });
+          
+            document.getElementById('sortOrder').addEventListener('change', function() {
+              const sortBy = document.getElementById('sortBy').value;
+              const sortOrder = this.value;
+              displayFolderList(Object.keys(folderMap), sortBy, sortOrder);
+            });
+          </script>
+          
           <!-- Folder navigation view -->
           <div id="folderExplorer">
             <h2>Folders in <span id="folderLabel">-</span></h2>
