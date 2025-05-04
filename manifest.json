@@ -1,21 +1,22 @@
 {
   "name": "Feather Player",
   "short_name": "Feather",
-  "description": "A web based music player.",
-  "start_url": "Music/index.html",
+  "start_url": "/Music/index.html",
+  "scope": "/Music/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff9800",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "assets/images/default-album.jpg",
+      "src": "/Music/assets/images/default-album.png",
       "sizes": "192x192",
-      "type": "image/jpg"
+      "type": "image/png"
     },
     {
-      "src": "assets/images/default-album.jpg",
+      "src": "/Music/assets/images/default-album.png",
       "sizes": "512x512",
-      "type": "image/jpg"
+      "type": "image/png"
     }
   ]
 }
