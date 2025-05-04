@@ -2,7 +2,7 @@
   "name": "Feather Player",
   "short_name": "Feather",
   "description": "A web based music player.",
-  "start_url": "./index.html",
+  "start_url": "Music/index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff9800",
