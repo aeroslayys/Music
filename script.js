@@ -304,13 +304,91 @@ navItems.forEach((item) => {
 
 function setupVisualizer() {
   if (!audioContext) {
+    // 1) Create context + analyser + source
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     source = audioContext.createMediaElementSource(audio);
-    source.connect(analyser);
+
+    // 2) Build your EQ filters
+    const eqFreqs = [60, 170, 350, 1000, 3500];
+    const eqFilters = eqFreqs.map((freq) => {
+      const f = audioContext.createBiquadFilter();
+      f.type = "peaking";
+      f.frequency.value = freq;
+      f.Q.value = 1;
+      f.gain.value = 0;
+      return f;
+    });
+
+    // 3) Build a gentle limiter/compressor to prevent clipping
+    const limiter = audioContext.createDynamicsCompressor();
+    limiter.threshold.setValueAtTime(-3, audioContext.currentTime);
+    limiter.knee.setValueAtTime(10, audioContext.currentTime);
+    limiter.ratio.setValueAtTime(12, audioContext.currentTime);
+    limiter.attack.setValueAtTime(0.005, audioContext.currentTime);
+    limiter.release.setValueAtTime(0.05, audioContext.currentTime);
+
+    // 4) Hook up source → eq filters… → limiter → analyser → destination
+    source.connect(eqFilters[0]);
+    for (let i = 0; i < eqFilters.length - 1; i++) {
+      eqFilters[i].connect(eqFilters[i + 1]);
+    }
+    eqFilters[eqFilters.length - 1].connect(limiter);
+    limiter.connect(analyser);
     analyser.connect(audioContext.destination);
-    analyser.fftSize = 256;
+
+    // 5) Store for visualizer
     dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    // 6) Wire each slider to its filter
+    eqFreqs.forEach((freq, i) => {
+      const slider = document.getElementById(`eq${freq}`);
+      if (slider) {
+        slider.addEventListener("input", (e) => {
+          eqFilters[i].gain.value = parseFloat(e.target.value);
+        });
+      }
+    });
+
+    // 7) Reset‑EQ button
+    const resetEqBtn = document.getElementById("resetEqBtn");
+    if (resetEqBtn) {
+      resetEqBtn.addEventListener("click", () => {
+        eqFilters.forEach((f, i) => {
+          f.gain.value = 0;
+          const s = document.getElementById(`eq${eqFreqs[i]}`);
+          if (s) s.value = 0;
+        });
+      });
+    }
+
+    // 8) EQ Toggle: bypass filters & limiter when unchecked
+    const eqToggle = document.getElementById("eqToggle");
+    if (eqToggle) {
+      eqToggle.addEventListener("change", () => {
+        // disconnect everything
+        source.disconnect();
+        eqFilters.forEach((f) => f.disconnect());
+        limiter.disconnect();
+        analyser.disconnect();
+
+        if (eqToggle.checked) {
+          // reconnect through EQ → limiter → analyser
+          source.connect(eqFilters[0]);
+          for (let i = 0; i < eqFilters.length - 1; i++) {
+            eqFilters[i].connect(eqFilters[i + 1]);
+          }
+          eqFilters[eqFilters.length - 1].connect(limiter);
+          limiter.connect(analyser);
+        } else {
+          // bypass EQ & limiter: source → analyser
+          source.connect(analyser);
+        }
+
+        // analyser → speaker
+        analyser.connect(audioContext.destination);
+      });
+    }
   }
 
   const canvasContext = visualizer.getContext("2d");
